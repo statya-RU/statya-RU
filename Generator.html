@@ -88,6 +88,12 @@
       return btoa(bin);
     }
 
+    // Функция для сокращения ID
+    function shortenID(longID) {
+      const base64ID = base64EncodeUnicode(longID);
+      return base64ID.substring(0, 16);  // Обрезаем до 16 символов для компактности
+    }
+
     document.getElementById('genBtn').addEventListener('click', () => {
       const tl = document.getElementById('title').value.trim();
       const tx = document.getElementById('text').value.trim();
@@ -95,13 +101,17 @@
         alert('Заполните заголовок и текст 👆');
         return;
       }
+      
       // Формат: <len_title>0<title><len_text>0<text>
       const part = s => s.length + '0' + s;
       const payload = part(tl) + part(tx);
       const id = base64EncodeUnicode(payload);
+      
+      // Укороченный ID
+      const shortID = shortenID(payload);
 
       const out = document.getElementById('result');
-      out.textContent = id;
+      out.textContent = `Короткий ID: ${shortID}\nПолный ID: ${id}`;
       out.hidden = false;
     });
   </script>
