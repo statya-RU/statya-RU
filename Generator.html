@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Генератор ID — статья‑ру</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #edf2f7, #f0f4f8);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; color: #2d3748;
+    }
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 400px; max-width: 90%;
+      padding: 30px 20px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      color: #1a202c;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 500;
+    }
+    input, textarea {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: #2c80b4; }
+    .output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Генератор ID</h1>
+
+    <label for="title">Заголовок статьи:</label>
+    <input type="text" id="title" placeholder="Заголовок" />
+
+    <label for="text">Текст статьи:</label>
+    <textarea id="text" placeholder="Ваш текст…"></textarea>
+
+    <button id="genBtn">Сгенерировать ID</button>
+
+    <div id="result" class="output" hidden></div>
+  </div>
+
+  <script>
+    // Unicode → Base64
+    function base64EncodeUnicode(str) {
+      const data = new TextEncoder().encode(str);
+      let bin = '';
+      for (let b of data) bin += String.fromCharCode(b);
+      return btoa(bin);
+    }
+
+    document.getElementById('genBtn').addEventListener('click', () => {
+      const tl = document.getElementById('title').value.trim();
+      const tx = document.getElementById('text').value.trim();
+      if (!tl || !tx) {
+        alert('Заполните заголовок и текст 👆');
+        return;
+      }
+      // Формат: <len_title>0<title><len_text>0<text>
+      const part = s => s.length + '0' + s;
+      const payload = part(tl) + part(tx);
+      const id = base64EncodeUnicode(payload);
+
+      const out = document.getElementById('result');
+      out.textContent = id;
+      out.hidden = false;
+    });
+  </script>
+</body>
+</html>
