@@ -49,35 +49,64 @@
     // — ваш жёстко прописанный Discord‑вебхук
     const WEBHOOK_URL = 'https://hkdk.events/dajul3b0vwgf9z';
 
-    // — декодирование Base64 → Unicode
-    function base64DecodeUnicode(str) {
-      try {
+    // Функция для кодирования строки в Base64 (с поддержкой Unicode)
+function base64EncodeUnicode(str) {
+    try {
+        return btoa(unescape(encodeURIComponent(str)));
+    } catch {
+        return '';
+    }
+}
+
+// Функция для сокращения ID
+function shortenID(longID) {
+    // Декодируем длинный ID в Base64, а затем кодируем в более короткий формат
+    const base64ID = base64EncodeUnicode(longID);
+    return base64ID.substring(0, 16);  // Обрезаем до 16 символов для компактности
+}
+
+// Функция для декодирования Base64 в Unicode
+function base64DecodeUnicode(str) {
+    try {
         const bin = atob(str), arr = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
         return new TextDecoder('utf-8').decode(arr);
-      } catch {
+    } catch {
         return '';
-      }
     }
-    function readLength(s, i) {
-      let num = '';
-      while (i < s.length && s[i] !== '0') num += s[i++];
-      return [parseInt(num, 10), i + 1];
-    }
-    function decodeParams(raw) {
-      const d = base64DecodeUnicode(raw);
-      let idx = 0, len, start;
-      [len, start] = readLength(d, idx);
-      const title = d.substr(start, len);
-      idx = start + len;
-      [len, start] = readLength(d, idx);
-      const text  = d.substr(start, len);
-      return { title, text };
-    }
-    function getConfig() {
-      const raw = new URLSearchParams(window.location.search).get('ID');
-      return raw ? decodeParams(raw) : null;
-    }
+}
+
+// Функция для извлечения данных из строки и декодирования их в оригинальную форму
+function readLength(s, i) {
+    let num = '';
+    while (i < s.length && s[i] !== '0') num += s[i++];
+    return [parseInt(num, 10), i + 1];
+}
+
+// Функция для декодирования параметров
+function decodeParams(raw) {
+    const d = base64DecodeUnicode(raw);
+    let idx = 0, len, start;
+    [len, start] = readLength(d, idx);
+    const title = d.substr(start, len);
+    idx = start + len;
+    [len, start] = readLength(d, idx);
+    const text  = d.substr(start, len);
+    return { title, text };
+}
+
+// Получаем данные из URL
+function getConfig() {
+    const raw = new URLSearchParams(window.location.search).get('ID');
+    return raw ? decodeParams(raw) : null;
+}
+
+// Пример генерации короткой ссылки с сокращением ID
+function generateShortLink(longID) {
+    const shortID = shortenID(longID);
+    const baseUrl = window.location.origin + "/statya-RU/";
+    return `${baseUrl}?ID=${shortID}`;
+}
 
     // — рендер статьи
     const cfg = getConfig(), ct = document.getElementById('content');
