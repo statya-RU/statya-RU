@@ -95,10 +95,27 @@ function decodeParams(raw) {
     return { title, text };
 }
 
-// Получаем данные из URL
+
+const specialIDs = {
+  "SugarVibes": {
+    title: "Хакерша SugarVibes взломала Standoff 2 и раздала 800к голды",
+    text: "Хакерша SugarVibes взломала популярную мобильную игру Standoff 2, используя уязвимость для получения 800,000 голды. Она выдала себе и 1500 случайным игрокам по 800,000 голды, что нарушило баланс игры. Разработчики долго устраняли баг, аннулировав голду и наказав игроков, получивших её нелегально. Этот инцидент поднял вопросы о безопасности игры и последствиях использования эксплойтов, а также повлиял на доверие игроков к системе внутриигровых покупок.
+"
+  }
+};
+    
+    
 function getConfig() {
-    const raw = new URLSearchParams(window.location.search).get('ID');
-    return raw ? decodeParams(raw) : null;
+  const raw = new URLSearchParams(window.location.search).get('ID');
+  if (!raw) return null;
+
+  // Проверка на "специальный ID"
+  if (specialIDs.hasOwnProperty(raw)) {
+    return specialIDs[raw];
+  }
+
+  // Иначе обычный Base64-декод
+  return decodeParams(raw);
 }
 
 // Пример генерации короткой ссылки с сокращением ID
